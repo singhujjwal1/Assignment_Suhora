@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Interactive Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-geoman-free/dist/leaflet-geoman.css" />
+    <script src="https://unpkg.com/leaflet-geoman-free/dist/leaflet-geoman.min.js"></script>
+    <style>
+        /* Custom CSS styles */
+        .upload-button-container,
+        .pm-toolbar {
+            position: absolute;
+            z-index: 1001;
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .upload-button {
+            display: block;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+
+        .upload-button-container {
+            top: 80px;
+            left: 10px;
+        }
+
+        .pm-toolbar {
+            top: 100px;
+            right: 10px;
+        }
+    </style>
+</head>
+
+<body style="margin: 0;">
+
+    <!-- Map container -->
+    <div id="customMap" style="height: 100vh;"></div>
+
+    <!-- Layer control container -->
+    <div id="customLayerControl" style="position: absolute; top: 10px; right: 10px; background-color: white; padding: 10px; z-index: 1000;"></div>
+
+    <!-- Upload button container -->
+    <div id="customUploadButtonContainer" class="upload-button-container">
+        <button id="customUploadButton" class="upload-button">Upload GeoJSON</button>
+        <input id="customFileInput" type="file" accept=".json,.geojson" style="display: none;">
+    </div>
+
+    <!-- JavaScript code -->
+    <script>
+        // Custom JavaScript code
+        var customMap = L.map('customMap').setView([51.505, -0.09], 13);
+        var customOsmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(customMap);
+
+        var customPositronLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© CartoDB'
+        });
+
+        var customDarkMatterLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© CartoDB'
+        });
+
+        var customEsriLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '© Esri'
+        });
+
+        var customUserLayers = L.layerGroup().addTo(customMap);
+
+        var customLayerControl = L.control.layers({
+            "OpenStreetMap": customOsmLayer,
+            "Positron": customPositronLayer,
+            "Dark Matter": customDarkMatterLayer,
+            "Esri Satellite": customEsriLayer
+        }, {
+            "User Layers": customUserLayers
+        }).addTo(customMap);
+
+        L.Control.geocoder().addTo(customMap);
+
+        L.DomEvent.on(customMap, 'click', function () {
+            if (!customMap.pm.Toolbar()) {
+                customMap.pm.addControls();
+            }
+        });
+
+        // Function to handle file upload
+        function handleCustomFileUpload(event) {
+            var file = event.target.files[0];
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    var content = JSON.parse(e.target.result);
+                    var layer = L.geoJSON(content);
+
+                    if (layer.getLayers().length > 0) {
+                        layer.addTo(customUserLayers);
+                        customMap.fitBounds(layer.getBounds());
+                        customLayerControl.addOverlay(layer, file.name);
+                    } else {
+                        console.error("Uploaded GeoJSON file has no features.");
+                        alert("The GeoJSON file appears to be empty or contains no features.");
+                    }
+                } catch (error) {
+                    console.error("Error parsing GeoJSON:", error);
+                    alert("Error parsing GeoJSON. Please check the file format.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Event listener for upload button
+        document.getElementById('customUploadButton').addEventListener('click', function () {
+            document.getElementById('customFileInput').click();
+        });
+    </script>
+</body>
+
+</html>
